@@ -31,17 +31,23 @@ suspend fun getImageUrl(originalUrl: String): String = getImageUrlSync(originalU
 
 /**
  * 同步版本：所有数据均来自 SharedPreferences 内存缓存，可在非协程环境使用。
+ * 针对大屏电视自动升级豆瓣海报至 1080P l_ratio_poster 超清原画。
  */
 fun getImageUrlSync(originalUrl: String): String {
     if (originalUrl.isEmpty()) return originalUrl
 
     return when {
-        originalUrl.contains("doubanio.com") -> when (AppDataService.getDoubanImageSourceKeySync()) {
-            "server_proxy" -> serverProxyOrNull(originalUrl) ?: originalUrl
-            "official_cdn" -> originalUrl.replace(DOUBAN_IMAGE_REGEX, "img3.doubanio.com")
-            "cdn_tencent"  -> originalUrl.replace(DOUBAN_IMAGE_REGEX, "img.doubanio.cmliussss.net")
-            "cdn_aliyun"   -> originalUrl.replace(DOUBAN_IMAGE_REGEX, "img.doubanio.cmliussss.com")
-            else           -> originalUrl
+        originalUrl.contains("doubanio.com") -> {
+            val hdUrl = originalUrl
+                .replace("/s_ratio_poster/", "/l_ratio_poster/")
+                .replace("/m_ratio_poster/", "/l_ratio_poster/")
+            when (AppDataService.getDoubanImageSourceKeySync()) {
+                "server_proxy" -> serverProxyOrNull(hdUrl) ?: hdUrl
+                "official_cdn" -> hdUrl.replace(DOUBAN_IMAGE_REGEX, "img3.doubanio.com")
+                "cdn_tencent"  -> hdUrl.replace(DOUBAN_IMAGE_REGEX, "img.doubanio.cmliussss.net")
+                "cdn_aliyun"   -> hdUrl.replace(DOUBAN_IMAGE_REGEX, "img.doubanio.cmliussss.com")
+                else           -> hdUrl.replace(DOUBAN_IMAGE_REGEX, "img3.doubanio.com")
+            }
         }
         BANGUMI_IMAGE_HOSTS.any { originalUrl.contains(it) } -> when (AppDataService.getBangumiImageSourceKeySync()) {
             "server_proxy" -> serverProxyOrNull(originalUrl) ?: originalUrl

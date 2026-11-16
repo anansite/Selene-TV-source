@@ -9,14 +9,13 @@ plugins {
     kotlin("plugin.serialization") version "2.1.0"
 }
 
-// 稳定签名：从仓库根目录 key.properties 读取密码/别名，storeFile 默认指向已提交的 key.jks。
-// CI 在构建前用 secrets 写出 key.properties；本地缺失时回退 debug 签名，保证可正常编译。
+// 稳定签名：默认指向已提交的 key.jks，支持 key.properties 覆盖。
 val keystorePropsFile = rootProject.file("key.properties")
 val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
 val keystoreFile = rootProject.file(keystoreProps.getProperty("storeFile") ?: "key.jks")
-val hasReleaseSigning = keystorePropsFile.exists() && keystoreFile.exists()
+val hasReleaseSigning = keystoreFile.exists()
 
 android {
     namespace = "org.moontechlab.selenetv"
@@ -26,8 +25,8 @@ android {
         applicationId = "org.moontechlab.selenetv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 20
-        versionName = "1.4.7"
+        versionCode = 21
+        versionName = "1.4.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -36,9 +35,9 @@ android {
         create("release") {
             if (hasReleaseSigning) {
                 storeFile = keystoreFile
-                storePassword = keystoreProps.getProperty("storePassword")
-                keyAlias = keystoreProps.getProperty("keyAlias")
-                keyPassword = keystoreProps.getProperty("keyPassword")
+                storePassword = keystoreProps.getProperty("storePassword") ?: "selenepassword"
+                keyAlias = keystoreProps.getProperty("keyAlias") ?: "selene"
+                keyPassword = keystoreProps.getProperty("keyPassword") ?: "selenepassword"
             }
         }
     }

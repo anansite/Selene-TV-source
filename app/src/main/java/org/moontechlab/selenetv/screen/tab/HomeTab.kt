@@ -36,6 +36,7 @@ import org.moontechlab.selenetv.service.DoubanService
 import org.moontechlab.selenetv.ui.CardContextMenu
 import org.moontechlab.selenetv.ui.CardMenuItem
 import org.moontechlab.selenetv.ui.ConfirmDialog
+import org.moontechlab.selenetv.ui.HomeBannerCarousel
 import org.moontechlab.selenetv.ui.RecommendSection
 import org.moontechlab.selenetv.ui.VideoCardSource
 
@@ -363,6 +364,13 @@ fun HomeTab(
         ) {
             // 顶部留出 TabSwitcher 的空间 + 额外间距
             Spacer(modifier = Modifier.height(64.dp))
+
+            // 首页首屏巨幅轮播 Banner
+            HomeBannerCarousel(
+                videos = hotMovies,
+                isLoading = isLoadingMovies,
+                onVideoClick = onVideoSelected
+            )
             
             // 播放历史 - 仅登录后、且有数据/加载中/有错误时显示（#4 未登录隐藏）
             if (isLoggedIn && (playRecords.isNotEmpty() || isLoadingPlayRecords || errorPlayRecords != null)) {
