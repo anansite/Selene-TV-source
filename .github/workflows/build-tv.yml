@@ -1,0 +1,89 @@
+name: Build TV APK
+
+# Selene-TV 出包流水线：手动触发或打 v* tag；tag 时自动附到 Release
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tv:
+    name: Build TV APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n 1)
+          echo "sdkmanager: ${SDKM:-<not found>}"
+          if [ -n "$SDKM" ]; then
+            yes | "$SDKM" --licenses > /dev/null 2>&1 || true
+            if [ ! -d "$ANDROID_HOME/platforms/android-36" ]; then
+              echo "installing platform 36 ..."
+              yes | "$SDKM" --install "platforms;android-36" "build-tools;36.0.0" || echo "预装失败，交给 AGP 按需下载"
+            fi
+          fi
+          ls "$ANDROID_HOME/platforms" 2>/dev/null || true
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APKs
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - name: Collect artifacts
+        run: |
+          VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts | head -n 1)
+          echo "version: $VERSION"
+          mkdir -p dist
+          for f in app/build/outputs/apk/release/*.apk; do
+            base=$(basename "$f")
+            abi=$(echo "$base" | sed -E 's/^app-(.*)-release\.apk$/\1/')
+            cp "$f" "dist/selene-tv-${VERSION}-${abi}.apk"
+          done
+          ls -lh dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: selene-tv-apk
+          path: dist/*.apk
+          if-no-files-found: error
+
+  release:
+    name: Attach to Release
+    needs: tv
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.apk
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
