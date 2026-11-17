@@ -37,7 +37,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.moontechlab.selenetv.model.VideoInfo
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import org.moontechlab.selenetv.service.DoubanService
+import org.moontechlab.selenetv.util.getImageUrlSync
 
 /**
  * 2024-2026 最新大片兜底精选池（全量 1080P 超清官方海报）
@@ -340,18 +344,26 @@ private fun BannerItemView(
             .background(Color(0xFF0F1014))
     ) {
         // 1. 底层大背景：优先使用官方原生 16:9 横版超清剧照；无剧照时平滑回退海报弥散环境光
-        CoverImage(
-            rawUrl = backdropUrl ?: video.cover,
-            contentDescription = null,
-            alignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    alpha = if (backdropUrl != null) 0.96f else 0.35f
-                    scaleX = if (backdropUrl != null) 1.0f else 1.25f
-                    scaleY = if (backdropUrl != null) 1.0f else 1.25f
-                }
-        )
+        // 彻底杜绝小卡片的“暂无封面”方块盖在巨幕展台中间；采用原生 crossfade 平滑渐显
+        val displayImg = backdropUrl ?: video.cover
+        if (displayImg.isNotBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(getImageUrlSync(displayImg))
+                    .crossfade(true)
+                    .build(),
+                contentDescription = video.title,
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = if (backdropUrl != null) 0.98f else 0.40f
+                        scaleX = if (backdropUrl != null) 1.0f else 1.20f
+                        scaleY = if (backdropUrl != null) 1.0f else 1.20f
+                    }
+            )
+        }
 
         // 2. 智能渐变遮罩：
         // - 有横版剧照时：采用 Apple TV+ 自底向上深邃平滑渐变，上半部 100% 裸露通透，下半部平滑过渡彻底保护文字，杜绝糊在衣服上
