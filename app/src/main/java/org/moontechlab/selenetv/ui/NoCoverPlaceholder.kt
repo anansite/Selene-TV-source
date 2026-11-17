@@ -89,6 +89,7 @@ fun CoverImage(
     rawUrl: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    alignment: Alignment = Alignment.Center,
     timeoutMs: Long = 5000,
 ) {
     val url = getImageUrlSync(rawUrl)
@@ -111,6 +112,7 @@ fun CoverImage(
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
+            alignment = alignment,
             onState = { state = it },
         )
         if (failed) NoCoverPlaceholder(Modifier.fillMaxSize())
