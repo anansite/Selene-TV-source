@@ -25,8 +25,8 @@ android {
         applicationId = "org.moontechlab.selenetv"
         minSdk = 23
         targetSdk = 36
-        versionCode = 22
-        versionName = "1.4.9"
+        versionCode = 23
+        versionName = "1.4.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

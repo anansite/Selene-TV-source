@@ -139,6 +139,45 @@ private val DEFAULT_BANNER_MOVIES = listOf(
     )
 )
 
+private data class BannerMovieMeta(
+    val tag: String,
+    val genre: String,
+    val overview: String
+)
+
+private val MOVIE_META_MAP = mapOf(
+    "野兽之心" to BannerMovieMeta(
+        tag = "2026 豆瓣爆款",
+        genre = "剧情 / 爱情",
+        overview = "面对现实的残酷与欲望的诱惑，一对相依为命的边缘恋人展开了扣人心弦的救赎博弈。"
+    ),
+    "八仙！" to BannerMovieMeta(
+        tag = "2026 爆笑喜剧",
+        genre = "喜剧 / 动画 / 奇幻 / 冒险",
+        overview = "八仙在成仙与搞事业之间玩转人间。面对泼天富贵与神妖阻挠，八个身份各异的凡人展开爆笑逆袭。"
+    ),
+    "沙丘2" to BannerMovieMeta(
+        tag = "IMAX 史诗巨制",
+        genre = "科幻 / 冒险 / 动作",
+        overview = "保罗·厄崔迪携手契妮与弗雷曼人，踏上复仇与拯救厄拉科斯的壮丽史诗之旅，宇宙宿命在此决裂。"
+    ),
+    "周处除三害" to BannerMovieMeta(
+        tag = "高分动作爽片",
+        genre = "动作 / 犯罪 / 剧情",
+        overview = "通缉犯陈桂林得知自己身患绝症后，决心查出前两名通缉犯并除掉他们借此扬名，展开亡命追凶。"
+    ),
+    "流浪地球2" to BannerMovieMeta(
+        tag = "硬核科幻里程碑",
+        genre = "科幻 / 动作 / 灾难",
+        overview = "太阳急速老化面临毁灭，人类启动万座行星发动机奔向新家园。在数字生命危机与太空电梯浩劫面前，全人类挺身决战。"
+    ),
+    "另一个妈妈" to BannerMovieMeta(
+        tag = "高能惊悚力作",
+        genre = "悬疑 / 惊悚 / 剧情",
+        overview = "母亲意外发现收养的女儿暗藏不可告人的秘密，平静生活瞬间演变为一场惊心动魄的心理拉锯战。"
+    )
+)
+
 /**
  * TV 端首页首屏巨幅轮播 Banner 组件
  *
@@ -264,12 +303,12 @@ fun HomeBannerCarousel(
             )
         }
 
-        // 底部右侧页码指示条
+        // 底部右侧纤细胶囊页码指示条（与手机端同款）
         if (bannerList.size > 1) {
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 28.dp, bottom = 20.dp),
+                    .padding(end = 28.dp, bottom = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -277,11 +316,11 @@ fun HomeBannerCarousel(
                     val isCurrent = index == pagerState.currentPage
                     Box(
                         modifier = Modifier
-                            .height(5.dp)
-                            .width(if (isCurrent) 22.dp else 6.dp)
-                            .clip(CircleShape)
+                            .height(4.dp)
+                            .width(if (isCurrent) 20.dp else 6.dp)
+                            .clip(RoundedCornerShape(2.dp))
                             .background(
-                                if (isCurrent) Color(0xFF27AE60) else Color(0x66FFFFFF)
+                                if (isCurrent) Color.White else Color(0x55FFFFFF)
                             )
                     )
                 }
@@ -291,47 +330,29 @@ fun HomeBannerCarousel(
 }
 
 /**
- * 单张巨幅 Banner 展示视图
+ * 单张巨幅 Banner 展示视图（全画幅铺展 + 左下角纯净电影元数据 + 无多余播放按钮，与手机端完全统一）
  */
 @Composable
 private fun BannerItemView(
     video: VideoInfo,
     isFocused: Boolean
 ) {
+    val meta = MOVIE_META_MAP[video.title]
+        ?: BannerMovieMeta(tag = "🔥 热门推荐", genre = "精选佳作", overview = "")
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF141414))
     ) {
-        // 1. 底层大图（居右裁剪）
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.65f)
-                .align(Alignment.CenterEnd)
-        ) {
-            CoverImage(
-                rawUrl = video.cover,
-                contentDescription = video.title,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
-
-        // 2. 渐变遮罩层（左侧纯黑渐变到右侧透明，底部渐变防止与底栏冲突）
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color(0xFF101010),
-                            0.45f to Color(0xF2101010),
-                            0.70f to Color(0xAA101010),
-                            1.0f to Color(0x33101010)
-                        )
-                    )
-                )
+        // 1. 底层大图（满画幅铺展，绝无左侧黑色遮挡或裁剪）
+        CoverImage(
+            rawUrl = video.cover,
+            contentDescription = video.title,
+            modifier = Modifier.fillMaxSize()
         )
+
+        // 2. 垂直渐变遮罩层（上部透明展现海报主体，底部柔和渐变至纯黑衬托文字）
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -339,113 +360,102 @@ private fun BannerItemView(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0.0f to Color.Transparent,
-                            0.6f to Color.Transparent,
-                            1.0f to Color(0xCC101010)
+                            0.40f to Color.Transparent,
+                            0.68f to Color(0x99000000),
+                            0.88f to Color(0xDD0A0A0A),
+                            1.0f to Color(0xF8080808)
                         )
                     )
                 )
         )
 
-        // 3. 左侧内容排版
+        // 3. 左下方前景排版（纯净好莱坞大片风格，无多余播放按钮）
         Column(
             modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.62f)
-                .padding(start = 36.dp, top = 26.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.Center
+                .align(Alignment.BottomStart)
+                .fillMaxWidth(0.85f)
+                .padding(start = 28.dp, bottom = 22.dp, end = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 顶部热播胶囊徽章
+            // 顶部元数据行：标签 + 评分 + 年份与题材
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // 红色胶囊徽标
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFFE50914))
-                        .padding(horizontal = 9.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFFE50914), Color(0xFFFF5252))
+                            )
+                        )
+                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
                 ) {
                     Text(
-                        text = "🔥 热门推荐",
+                        text = meta.tag,
                         color = Color.White,
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                // 评分
+                // 金星评分
                 val rate = video.rate
                 if (!rate.isNullOrEmpty()) {
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0x33FFFFFF))
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = "Rating",
                             tint = Color(0xFFFFB800),
-                            modifier = Modifier.size(13.dp)
+                            modifier = Modifier.size(15.dp)
                         )
                         Text(
                             text = rate,
                             color = Color(0xFFFFB800),
-                            fontSize = 12.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
+
+                // 年份与分类
+                if (video.year.isNotEmpty()) {
+                    Text(
+                        text = "${video.year} · ${meta.genre}",
+                        color = Color(0xCCFFFFFF),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 标题
+            // 大片主标题
             Text(
                 text = video.title,
                 color = Color.White,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 34.sp
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 年份及辅助信息
-            if (video.year.isNotEmpty()) {
+            // 精炼看点剧情概述
+            if (meta.overview.isNotEmpty()) {
                 Text(
-                    text = "${video.year} · 豆瓣热推精选",
-                    color = Color(0xBBFFFFFF),
-                    fontSize = 14.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 播放操作提示按钮
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(if (isFocused) Color(0xFF27AE60) else Color(0x33FFFFFF))
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = if (isFocused) "按 OK 键立即播放" else "立即播放",
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    text = meta.overview,
+                    color = Color(0xD9FFFFFF),
+                    fontSize = 12.5.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
