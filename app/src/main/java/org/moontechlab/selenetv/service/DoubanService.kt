@@ -571,4 +571,72 @@ class DoubanService private constructor(private val context: Context) {
             else -> DoubanDataSourceKey.DIRECT
         }
     }
+
+    /**
+     * 获取豆瓣原生 16:9 超清横版剧照 (Backdrop)
+     * 针对 TV 电视端大屏巨幕，自动拉取官方第一张宽大于高的横向剧照 (16:9 / 2.35:1)
+     * 避免竖版海报强行拉伸导致人物切头、裁切严重、体现不出重点的痛点。
+     */
+    suspend fun getDoubanBackdrop(doubanId: String): String? = withContext(Dispatchers.IO) {
+        if (doubanId.isBlank()) return@withContext null
+        initCache()
+        val cacheKey = "douban_backdrop_$doubanId"
+        val cached = try {
+            cacheService.get(cacheKey) { it }
+        } catch (_: Exception) {
+            null
+        }
+        if (cached != null) {
+            return@withContext cached.takeIf { it.isNotBlank() && it != "NONE" }
+        }
+
+        val dataSourceKey = getDoubanDataSourceKey()
+        val baseUrl = when (dataSourceKey) {
+            DoubanDataSourceKey.CDN_TENCENT -> "https://m.douban.cmliussss.net"
+            DoubanDataSourceKey.CDN_ALIYUN -> "https://m.douban.cmliussss.com"
+            else -> "https://m.douban.com"
+        }
+        val apiUrl = "$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=8"
+
+        try {
+            val url = URL(apiUrl)
+            val connection = (url.openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 8000
+                readTimeout = 8000
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                setRequestProperty("Referer", "https://movie.douban.com/")
+            }
+            if (connection.responseCode == 200) {
+                val body = connection.inputStream.bufferedReader().use { it.readText() }
+                val root = json.parseToJsonElement(body).jsonObject
+                val photos = root["photos"] as? JsonArray
+                var backdropUrl: String? = null
+                if (photos != null) {
+                    for (p in photos) {
+                        val pObj = p as? JsonObject ?: continue
+                        val img = pObj["image"] as? JsonObject ?: continue
+                        val lg = img["large"] as? JsonObject ?: continue
+                        val w = lg["width"]?.jsonPrimitive?.intOrNull ?: 0
+                        val h = lg["height"]?.jsonPrimitive?.intOrNull ?: 0
+                        val u = lg["url"]?.jsonPrimitive?.contentOrNull
+                        // 筛选横屏剧照 (width > height)
+                        if (w > h && !u.isNullOrBlank()) {
+                            backdropUrl = u
+                            break
+                        }
+                    }
+                }
+                if (backdropUrl != null) {
+                    cacheService.set(cacheKey, backdropUrl, 30L * 24 * 60 * 60 * 1000)
+                    return@withContext backdropUrl
+                }
+            }
+            cacheService.set(cacheKey, "NONE", 3L * 24 * 60 * 60 * 1000)
+            null
+        } catch (e: Exception) {
+            android.util.Log.d("DoubanService", "getDoubanBackdrop 失败: ${e.message}")
+            null
+        }
+    }
 }
