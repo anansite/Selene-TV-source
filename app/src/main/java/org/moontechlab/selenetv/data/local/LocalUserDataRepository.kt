@@ -31,7 +31,13 @@ object LocalUserDataRepository : UserDataRepository {
 
     internal fun upsertPlayRecord(existing: Map<String, PlayRecord>, record: PlayRecord): Map<String, PlayRecord> {
         val key = "${record.source}+${record.id}"
-        return existing.toMutableMap().apply { this[key] = record }
+        val updated = existing.toMutableMap().apply { this[key] = record }
+        if (updated.size <= 100) return updated
+        // 播放历史最多保留 100 条（按 saveTime 降序保留最新 100 条，杜绝无限膨胀）
+        return updated.entries
+            .sortedByDescending { it.value.saveTime }
+            .take(100)
+            .associate { it.key to it.value }
     }
 
     /** ApiService.addFavorite 的 favoriteData Map 形态 → FavoriteItem。 */

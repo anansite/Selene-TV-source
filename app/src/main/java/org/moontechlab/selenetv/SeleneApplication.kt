@@ -3,11 +3,13 @@ package org.moontechlab.selenetv
 import android.app.Application
 import android.util.Log
 import coil.EventListener
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import org.moontechlab.selenetv.data.local.LocalStore
 import org.moontechlab.selenetv.service.AppDataService
 import org.moontechlab.selenetv.server.RemoteControlServer
-import coil.ImageLoader
-import coil.ImageLoaderFactory
 import coil.request.CachePolicy
 import coil.request.ErrorResult
 import coil.request.ImageRequest
@@ -15,6 +17,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import java.io.File
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
@@ -72,6 +75,17 @@ class SeleneApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .okHttpClient {
                 createUnsafeOkHttpClient()
+            }
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.15) // 最多占应用可用内存 15%，防止低端 TV OOM
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(File(cacheDir, "image_cache"))
+                    .maxSizeBytes(120L * 1024 * 1024) // 严格锁定最大 120MB，自动 LRU 淘汰旧图
+                    .build()
             }
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)

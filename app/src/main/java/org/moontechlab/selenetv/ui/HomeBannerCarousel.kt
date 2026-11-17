@@ -347,29 +347,48 @@ private fun BannerItemView(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    alpha = if (backdropUrl != null) 0.85f else 0.32f
+                    alpha = if (backdropUrl != null) 0.96f else 0.35f
                     scaleX = if (backdropUrl != null) 1.0f else 1.25f
                     scaleY = if (backdropUrl != null) 1.0f else 1.25f
                 }
         )
 
-        // 2. 现代多层渐变蒙版：保护左侧文字超高清晰度，向右侧自然流淌展现官方剧照
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colorStops = arrayOf(
-                            0.0f to Color(0xFF0F1014),
-                            0.38f to Color(0xF50F1014),
-                            0.65f to Color(0x990F1014),
-                            1.0f to Color(0x220F1014)
+        // 2. 智能渐变遮罩：
+        // - 有横版剧照时：使用自下而上的超轻薄微渐变，上半部 100% 纯净通透，下半部柔和过渡保护文字
+        // - 无剧照回退时：使用左侧水平渐变保护文字并突显右侧悬浮海报
+        if (backdropUrl != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color.Transparent,
+                                0.40f to Color.Transparent,
+                                0.70f to Color(0x88090A0D),
+                                1.0f to Color(0xF2090A0D)
+                            )
                         )
                     )
-                )
-        )
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color(0xFF0F1014),
+                                0.40f to Color(0xF20F1014),
+                                0.70f to Color(0x990F1014),
+                                1.0f to Color(0x220F1014)
+                            )
+                        )
+                    )
+            )
+        }
 
-        // 3. 右侧【电影明信片·立体悬浮微卡】（当未获取到横版剧照时，提供 100% 完整的海报原画重点保证）
+        // 3. 右侧【电影明信片·立体悬浮微卡】（当未获取到横版剧照时，提供 100% 完整的海报原画保底）
         if (backdropUrl == null) {
             Box(
                 modifier = Modifier
@@ -398,115 +417,236 @@ private fun BannerItemView(
             }
         }
 
-        // 4. 左侧【紧凑黄金信息栈】（徽标 + 评分 + 标题 + 剧情精要 + 底部指示条）
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(0.64f)
-                .padding(start = 32.dp, end = 16.dp, top = 18.dp, bottom = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 元数据行：标签 + 评分 + 年份与题材
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // 4. 【沉浸式信息排版】：
+        // - 横版剧照时：收敛至底部（Bottom Overlay），释放 100% 宽幅超清画面
+        // - 回退海报时：保持经典左侧黄金排版
+        if (backdropUrl != null) {
+            // 底部流线型电影信息条
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                // 红色渐变小胶囊
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFFE50914), Color(0xFFFF4141))
-                            )
-                        )
-                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                // 第一行：[标签] + [评分] + [主标题] + [年份·题材]
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = meta.tag,
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // 金星评分
-                val rate = video.rate
-                if (!rate.isNullOrEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    // 红色渐变小胶囊
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFE50914), Color(0xFFFF4141))
+                                )
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = "Rating",
-                            tint = Color(0xFFFFB800),
-                            modifier = Modifier.size(14.dp)
-                        )
                         Text(
-                            text = rate,
-                            color = Color(0xFFFFB800),
-                            fontSize = 13.sp,
+                            text = meta.tag,
+                            color = Color.White,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // 金星评分
+                    val rate = video.rate
+                    if (!rate.isNullOrEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Rating",
+                                tint = Color(0xFFFFB800),
+                                modifier = Modifier.size(13.dp)
+                            )
+                            Text(
+                                text = rate,
+                                color = Color(0xFFFFB800),
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // 大片主标题
+                    Text(
+                        text = video.title,
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    // 年份与分类
+                    if (video.year.isNotEmpty()) {
+                        Text(
+                            text = "${video.year} · ${meta.genre}",
+                            color = Color(0xAAFFFFFF),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                // 年份与分类
-                if (video.year.isNotEmpty()) {
+                // 第二行：两端对齐（左侧看点剧情精要，右侧轮播指示器）
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    if (meta.overview.isNotEmpty()) {
+                        Text(
+                            text = meta.overview,
+                            color = Color(0xCCFFFFFF),
+                            fontSize = 11.5.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .padding(end = 16.dp)
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+
+                    // 底部纤细指示条
+                    if (pageCount > 1) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            repeat(pageCount) { index ->
+                                val isCurrent = index == currentPage
+                                Box(
+                                    modifier = Modifier
+                                        .height(3.dp)
+                                        .width(if (isCurrent) 18.dp else 5.dp)
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(
+                                            if (isCurrent) Color.White else Color(0x44FFFFFF)
+                                        )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // 回退海报经典左侧排版
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .fillMaxWidth(0.64f)
+                    .padding(start = 32.dp, end = 16.dp, top = 18.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 元数据行：标签 + 评分 + 年份与题材
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFE50914), Color(0xFFFF4141))
+                                )
+                            )
+                            .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                    ) {
+                        Text(
+                            text = meta.tag,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    val rate = video.rate
+                    if (!rate.isNullOrEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Rating",
+                                tint = Color(0xFFFFB800),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = rate,
+                                color = Color(0xFFFFB800),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    if (video.year.isNotEmpty()) {
+                        Text(
+                            text = "${video.year} · ${meta.genre}",
+                            color = Color(0xCCFFFFFF),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Text(
+                    text = video.title,
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 30.sp
+                )
+
+                if (meta.overview.isNotEmpty()) {
                     Text(
-                        text = "${video.year} · ${meta.genre}",
+                        text = meta.overview,
                         color = Color(0xCCFFFFFF),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
+                        lineHeight = 17.5.sp,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-            }
 
-            // 大片主标题
-            Text(
-                text = video.title,
-                color = Color.White,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                lineHeight = 30.sp
-            )
+                Spacer(modifier = Modifier.height(4.dp))
 
-            // 精练看点剧情概述（2 行收敛排版）
-            if (meta.overview.isNotEmpty()) {
-                Text(
-                    text = meta.overview,
-                    color = Color(0xCCFFFFFF),
-                    fontSize = 12.sp,
-                    lineHeight = 17.5.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // 5. 底部纤细指示条（紧贴文字左对齐）
-            if (pageCount > 1) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(pageCount) { index ->
-                        val isCurrent = index == currentPage
-                        Box(
-                            modifier = Modifier
-                                .height(3.5.dp)
-                                .width(if (isCurrent) 20.dp else 5.5.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    if (isCurrent) Color.White else Color(0x44FFFFFF)
-                                )
-                        )
+                if (pageCount > 1) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(pageCount) { index ->
+                            val isCurrent = index == currentPage
+                            Box(
+                                modifier = Modifier
+                                    .height(3.5.dp)
+                                    .width(if (isCurrent) 20.dp else 5.5.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(
+                                        if (isCurrent) Color.White else Color(0x44FFFFFF)
+                                    )
+                            )
+                        }
                     }
                 }
             }

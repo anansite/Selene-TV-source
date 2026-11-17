@@ -46,6 +46,14 @@ class LocalUserDataRepositoryHelpersTest {
         assertEquals(50L, out[k]!!.playTime)
     }
 
+    @Test fun upsertPlayRecord_caps_at_100_keeping_newest() {
+        val existing = (1..100).associate { "src+$it" to record("src", "$it", saveTime = it.toLong()) }
+        val out = LocalUserDataRepository.upsertPlayRecord(existing, record("src", "new", saveTime = 9999L))
+        assertEquals(100, out.size)
+        assertEquals(true, out.containsKey("src+new"))
+        assertEquals(false, out.containsKey("src+1")) // 最旧记录被淘汰
+    }
+
     @Test fun favoriteFromMap_builds_item_from_snake_case_keys() {
         val map: Map<String, Any?> = mapOf(
             "title" to "T",

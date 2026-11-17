@@ -445,7 +445,7 @@ fun SettingsTab(
                 // —— 缓存 ——
                 SectionLabel("缓存")
                 SettingRow(
-                    label = "清空豆瓣缓存",
+                    label = "清空豆瓣及海报缓存",
                     accent = RowAccent.Orange,
                     onClick = { showClearDoubanCacheDialog = true },
                     modifier = Modifier.focusRequester(clearDoubanCacheFocusRequester)
@@ -740,12 +740,17 @@ fun SettingsTab(
         onClosed = { clearDoubanCacheFocusRequester.requestFocus() }
     ) { onClose ->
         ConfirmDialogContent(
-            title = "清空豆瓣缓存",
-            message = "确定要清空所有豆瓣缓存数据吗？",
+            title = "清空豆瓣及海报缓存",
+            message = "确定要清空所有豆瓣元数据及海报图片缓存吗？",
             onConfirm = {
                 coroutineScope.launch {
                     doubanCacheService.clearAll()
-                    org.moontechlab.selenetv.ui.MoonToast.show("豆瓣缓存已清空")
+                    runCatching {
+                        coil.Coil.imageLoader(context).diskCache?.clear()
+                        coil.Coil.imageLoader(context).memoryCache?.clear()
+                        java.io.File(context.cacheDir, "image_cache").deleteRecursively()
+                    }
+                    org.moontechlab.selenetv.ui.MoonToast.show("豆瓣及海报图片缓存已清空")
                 }
                 onClose()
             },

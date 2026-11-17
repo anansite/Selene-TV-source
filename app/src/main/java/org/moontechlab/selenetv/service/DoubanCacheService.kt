@@ -267,6 +267,8 @@ class DoubanCacheService private constructor(private val context: Context) {
                                 }
                             }
                         }
+                        // 容量保护（LRU）：限制最多 500 个文件，最大 30MB，超限淘汰最早的 25% 文件
+                        enforceDiskCapacity(dir)
                     }
                 }
             } catch (e: Exception) {
@@ -275,6 +277,24 @@ class DoubanCacheService private constructor(private val context: Context) {
         }
     }
     
+    /**
+     * 容量保护（LRU 策略）：
+     * 当缓存文件超过 500 个或总大小超过 30MB 时，
+     * 按最后修改时间（lastModified）升序删除最旧的 25% 文件，杜绝长期运行磁盘膨胀。
+     */
+    private fun enforceDiskCapacity(dir: File) {
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(".json") } ?: return
+        val maxFileCount = 500
+        val maxTotalBytes = 30L * 1024 * 1024 // 30MB
+        val totalBytes = files.sumOf { it.length() }
+
+        if (files.size > maxFileCount || totalBytes > maxTotalBytes) {
+            val sorted = files.sortedBy { it.lastModified() }
+            val deleteCount = (files.size * 0.25f).toInt().coerceAtLeast(1)
+            sorted.take(deleteCount).forEach { it.delete() }
+        }
+    }
+
     /**
      * 清空所有缓存
      */
