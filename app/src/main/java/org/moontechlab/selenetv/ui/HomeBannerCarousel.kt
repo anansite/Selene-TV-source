@@ -354,7 +354,7 @@ private fun BannerItemView(
         )
 
         // 2. 智能渐变遮罩：
-        // - 有横版剧照时：使用自下而上的超轻薄微渐变，上半部 100% 纯净通透，下半部柔和过渡保护文字
+        // - 有横版剧照时：采用 Apple TV+ 自底向上深邃平滑渐变，上半部 100% 裸露通透，下半部平滑过渡彻底保护文字，杜绝糊在衣服上
         // - 无剧照回退时：使用左侧水平渐变保护文字并突显右侧悬浮海报
         if (backdropUrl != null) {
             Box(
@@ -364,9 +364,10 @@ private fun BannerItemView(
                         Brush.verticalGradient(
                             colorStops = arrayOf(
                                 0.0f to Color.Transparent,
-                                0.40f to Color.Transparent,
-                                0.70f to Color(0x88090A0D),
-                                1.0f to Color(0xF2090A0D)
+                                0.25f to Color.Transparent,
+                                0.55f to Color(0x66090A0D),
+                                0.80f to Color(0xCC090A0D),
+                                1.0f to Color(0xFA090A0D)
                             )
                         )
                     )
@@ -418,109 +419,109 @@ private fun BannerItemView(
         }
 
         // 4. 【沉浸式信息排版】：
-        // - 横版剧照时：收敛至底部（Bottom Overlay），释放 100% 宽幅超清画面
+        // - 横版剧照时：采用 Apple TV+ 电影级双层自然流（大片标题独立为第一主角，副信息优雅收敛在第二行）
         // - 回退海报时：保持经典左侧黄金排版
         if (backdropUrl != null) {
-            // 底部流线型电影信息条
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, bottom = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(5.dp)
+                    .padding(start = 28.dp, end = 28.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // 第一行：[标签] + [评分] + [主标题] + [年份·题材]
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // 红色渐变小胶囊
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFFE50914), Color(0xFFFF4141))
-                                )
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = meta.tag,
-                            color = Color.White,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                // 第一行：大片主标题（绝对第一视觉主角，大号粗体白字，气势磅礴）
+                Text(
+                    text = video.title,
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    // 金星评分
-                    val rate = video.rate
-                    if (!rate.isNullOrEmpty()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Rating",
-                                tint = Color(0xFFFFB800),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text(
-                                text = rate,
-                                color = Color(0xFFFFB800),
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // 大片主标题
-                    Text(
-                        text = video.title,
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    // 年份与分类
-                    if (video.year.isNotEmpty()) {
-                        Text(
-                            text = "${video.year} · ${meta.genre}",
-                            color = Color(0xAAFFFFFF),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // 第二行：两端对齐（左侧看点剧情精要，右侧轮播指示器）
+                // 第二行：两端对齐：左侧收敛副信息流（微标签 + 评分 + 细点 + 年份分类 + 剧情看点），右侧并排指示器
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (meta.overview.isNotEmpty()) {
-                        Text(
-                            text = meta.overview,
-                            color = Color(0xCCFFFFFF),
-                            fontSize = 11.5.sp,
-                            lineHeight = 16.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(end = 16.dp)
+                    ) {
+                        // 红色微型胶囊
+                        Box(
                             modifier = Modifier
-                                .weight(1f, fill = false)
-                                .padding(end = 16.dp)
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFFE50914), Color(0xFFFF3B30))
+                                    )
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = meta.tag,
+                                color = Color.White,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // 金星评分
+                        val rate = video.rate
+                        if (!rate.isNullOrEmpty()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Rating",
+                                    tint = Color(0xFFFFB800),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = rate,
+                                    color = Color(0xFFFFB800),
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // 细圆点分隔
+                        Text(text = "•", color = Color(0x55FFFFFF), fontSize = 11.sp)
+
+                        // 年份与题材
+                        if (video.year.isNotEmpty()) {
+                            Text(
+                                text = "${video.year} · ${meta.genre}",
+                                color = Color(0xB3FFFFFF),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // 精炼剧情看点（有空间则展示）
+                        if (meta.overview.isNotEmpty()) {
+                            Text(text = "•", color = Color(0x55FFFFFF), fontSize = 11.sp)
+                            Text(
+                                text = meta.overview,
+                                color = Color(0x99FFFFFF),
+                                fontSize = 11.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
 
-                    // 底部纤细指示条
+                    // 右侧纤细指示条
                     if (pageCount > 1) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
