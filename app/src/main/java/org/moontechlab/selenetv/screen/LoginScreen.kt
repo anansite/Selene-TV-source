@@ -3,6 +3,11 @@ package org.moontechlab.selenetv.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -196,6 +201,7 @@ private fun LoginScreenContent(
 
     // 登录处理
     fun handleLogin() {
+        Log.i(TAG, "handleLogin clicked: serverUrl=$serverUrl, username=$username")
         if (!isFormValid()) {
             showToast("请填写完整的登录信息")
             return
@@ -206,11 +212,13 @@ private fun LoginScreenContent(
         coroutineScope.launch {
             try {
                 val initialBase = processUrl(serverUrl)
+                Log.i(TAG, "Requesting AuthHelper.postLogin for $initialBase")
 
                 val result = withContext(Dispatchers.IO) {
                     AuthHelper.postLogin(initialBase, username.trim(), password.trim())
                 }
 
+                Log.i(TAG, "Login responseCode=${result.responseCode}, cookiesLen=${result.cookies.length}")
                 isLoading = false
 
                 when (result.responseCode) {
@@ -345,6 +353,7 @@ private fun LoginScreenContent(
                     placeholder = "例如: https://example.com/sub/xxx",
                     focusRequester = subscriptionUrlFocusRequester,
                     downFocusRequester = localLoginButtonFocusRequester,
+                    onImeDone = { handleLocalModeLogin() }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -402,7 +411,8 @@ private fun LoginScreenContent(
                     isPassword = true,
                     focusRequester = passwordFocusRequester,
                     upFocusRequester = usernameFocusRequester,
-                    downFocusRequester = loginButtonFocusRequester
+                    downFocusRequester = loginButtonFocusRequester,
+                    onImeDone = { handleLogin() }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -466,11 +476,19 @@ private fun LoginTextField(
     isPassword: Boolean = false,
     focusRequester: FocusRequester,
     upFocusRequester: FocusRequester? = null,
-    downFocusRequester: FocusRequester? = null
+    downFocusRequester: FocusRequester? = null,
+    onImeDone: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
 
-    Column {
+    Column(
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = null
+        ) {
+            focusRequester.requestFocus()
+        }
+    ) {
         Text(
             text = label,
             fontSize = 12.sp,
@@ -481,9 +499,43 @@ private fun LoginTextField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
+            keyboardOptions = KeyboardOptions(
+                imeAction = if (onImeDone != null) ImeAction.Done else ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { downFocusRequester?.requestFocus() },
+                onDone = {
+                    if (onImeDone != null) onImeDone.invoke()
+                    else downFocusRequester?.requestFocus()
+                }
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
+                .onKeyEvent { keyEvent ->
+                    if (keyEvent.type == KeyEventType.KeyDown) {
+                        when (keyEvent.key) {
+                            Key.DirectionDown -> {
+                                downFocusRequester?.requestFocus()
+                                true
+                            }
+                            Key.DirectionUp -> {
+                                upFocusRequester?.requestFocus()
+                                true
+                            }
+                            Key.Enter, Key.NumPadEnter -> {
+                                if (onImeDone != null) {
+                                    onImeDone.invoke()
+                                    true
+                                } else {
+                                    downFocusRequester?.requestFocus()
+                                    true
+                                }
+                            }
+                            else -> false
+                        }
+                    } else false
+                }
                 .focusProperties {
                     // 指定上下导航的目标
                     if (upFocusRequester != null) up = upFocusRequester
@@ -528,7 +580,7 @@ private fun LoginTextField(
 }
 
 /**
- * 登录按钮
+ * 登录按钮（全面支持遥控器 OK 键、物理键盘回车以及触屏/鼠标直接点击）
  */
 @Composable
 private fun LoginButton(
@@ -552,6 +604,13 @@ private fun LoginButton(
         onClick = { if (enabled) onClick() },
         modifier = modifier
             .fillMaxWidth()
+            .clickable(
+                enabled = enabled,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                if (enabled) onClick()
+            }
             .focusProperties {
                 if (upFocusRequester != null) up = upFocusRequester
                 if (downFocusRequester != null) down = downFocusRequester
@@ -571,6 +630,13 @@ private fun LoginButton(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(
+                    enabled = enabled,
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) {
+                    if (enabled) onClick()
+                }
                 .padding(vertical = 14.dp),
             contentAlignment = Alignment.Center
         ) {

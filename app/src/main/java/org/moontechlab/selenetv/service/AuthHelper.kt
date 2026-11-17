@@ -76,11 +76,15 @@ internal object AuthHelper {
                 lastCode = code
 
                 // 累积当前响应的 Set-Cookie：3xx 跳转上设置的 CSRF/session cookie 也需要带到下一跳。
-                conn.headerFields["Set-Cookie"]?.forEach { raw ->
-                    val pair = raw.split(";").firstOrNull() ?: return@forEach
-                    val eq = pair.indexOf('=')
-                    if (eq > 0) accumulatedCookies[pair.substring(0, eq)] = pair
-                }
+                // 兼容不同服务端和系统大小写实现（Set-Cookie / set-cookie）
+                conn.headerFields.entries
+                    .filter { it.key != null && it.key.equals("Set-Cookie", ignoreCase = true) }
+                    .flatMap { it.value }
+                    .forEach { raw ->
+                        val pair = raw.split(";").firstOrNull() ?: return@forEach
+                        val eq = pair.indexOf('=')
+                        if (eq > 0) accumulatedCookies[pair.substring(0, eq)] = pair
+                    }
 
                 if (code in 300..399) {
                     val location = conn.getHeaderField("Location")
