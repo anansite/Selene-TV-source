@@ -409,7 +409,7 @@ private fun BannerItemView(
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 2,
-                overflow = TextOverflow.ellipsis,
+                overflow = TextOverflow.Ellipsis,
                 lineHeight = 34.sp
             )
 
