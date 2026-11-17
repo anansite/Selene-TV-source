@@ -594,7 +594,7 @@ class DoubanService private constructor(private val context: Context) {
         val baseUrl = when (dataSourceKey) {
             DoubanDataSourceKey.CDN_TENCENT -> "https://m.douban.cmliussss.net"
             DoubanDataSourceKey.CDN_ALIYUN -> "https://m.douban.cmliussss.com"
-            else -> "https://m.douban.com"
+            else -> "https://m.douban.cmliussss.net" // 豆瓣移动端 Rexxar 接口直连会返回 400，默认走免签 CDN 代理
         }
         val apiUrl = "$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=8"
 
