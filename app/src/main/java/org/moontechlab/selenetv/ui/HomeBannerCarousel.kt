@@ -223,7 +223,7 @@ fun HomeBannerCarousel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 32.dp, vertical = 12.dp)
-            .height(350.dp)
+            .height(320.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -303,12 +303,12 @@ fun HomeBannerCarousel(
             )
         }
 
-        // 底部右侧纤细胶囊页码指示条（与手机端同款）
+        // 底部左侧纤细胶囊页码指示条（与左侧大片看点文字精准左对齐）
         if (bannerList.size > 1) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 28.dp, bottom = 22.dp),
+                    .align(Alignment.BottomStart)
+                    .padding(start = 36.dp, bottom = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -317,7 +317,7 @@ fun HomeBannerCarousel(
                     Box(
                         modifier = Modifier
                             .height(4.dp)
-                            .width(if (isCurrent) 20.dp else 6.dp)
+                            .width(if (isCurrent) 22.dp else 6.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(
                                 if (isCurrent) Color.White else Color(0x55FFFFFF)
@@ -330,9 +330,12 @@ fun HomeBannerCarousel(
 }
 
 /**
- * 单张巨幅 Banner 展示视图：
- * 全画幅大图铺展 + Alignment.TopCenter 绝不切头切下半身
- * 底部柔和垂直黑影保护文字 + 左下角大片看点排版 + 无多余播放按钮
+ * 单张巨幅 Banner 展示视图（方案 1：自然羽化沉浸式）：
+ * - 底层铺设微光暗化氛围底图，营造沉浸大片感；
+ * - 右侧展示 100% 完整 2:3 院线海报（全貌展示，绝不裁头、绝不裁身、字画完整）；
+ * - 海报左边缘平滑羽化消融（Fade-out）自然融入纯黑背景，无任何生硬分割线；
+ * - 左侧舒展排布大片徽标、金星评分、年代题材、30sp超大标题与2行看点概述；
+ * - 通体全卡可点，遥控器与触控无缝支持。
  */
 @Composable
 private fun BannerItemView(
@@ -345,40 +348,90 @@ private fun BannerItemView(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF141414))
+            .background(Color(0xFF0F0F0F))
     ) {
-        // 1. 底层大图（满画幅全屏铺展，采用 Alignment.TopCenter 顶端对齐，绝不切头！）
+        // 1. 底层沉浸环境图（充满全屏，低透明度暗化，营造背景环境光）
         CoverImage(
             rawUrl = video.cover,
-            contentDescription = video.title,
-            alignment = Alignment.TopCenter,
-            modifier = Modifier.fillMaxSize()
+            contentDescription = null,
+            alignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = 0.20f }
         )
 
-        // 2. 垂直渐变遮罩层（上部透明让海报人物面容 100% 展现，底部柔和渐隐保证文字清晰）
+        // 2. 底层黑向横向遮罩（左侧纯黑纯净，向右侧渐变微透）
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.verticalGradient(
+                    Brush.horizontalGradient(
                         colorStops = arrayOf(
-                            0.0f to Color.Transparent,
-                            0.42f to Color.Transparent,
-                            0.68f to Color(0x99000000),
-                            0.88f to Color(0xDD0A0A0A),
-                            1.0f to Color(0xF8080808)
+                            0.0f to Color(0xFF0F0F0F),
+                            0.45f to Color(0xF50F0F0F),
+                            0.70f to Color(0xBB0F0F0F),
+                            1.0f to Color(0x440F0F0F)
                         )
                     )
                 )
         )
 
-        // 3. 左下方前景排版（纯净好莱坞大片风格，无多余播放按钮，全画幅通体可点）
+        // 3. 右侧 100% 完整 2:3 院线海报 + 左边缘自然羽化遮罩
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .aspectRatio(2f / 3f)
+                .align(Alignment.CenterEnd)
+        ) {
+            // 完整海报原画
+            CoverImage(
+                rawUrl = video.cover,
+                contentDescription = video.title,
+                alignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // 左边缘羽化渐变（从深黑柔和过渡到全透明）
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color(0xFF0F0F0F),
+                                0.22f to Color(0xDD0F0F0F),
+                                0.48f to Color(0x770F0F0F),
+                                0.75f to Color.Transparent,
+                                1.0f to Color.Transparent
+                            )
+                        )
+                    )
+            )
+
+            // 微弱上下暗角，增加光影景深
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colorStops = arrayOf(
+                                0.0f to Color(0x33000000),
+                                0.12f to Color.Transparent,
+                                0.88f to Color.Transparent,
+                                1.0f to Color(0x44000000)
+                            )
+                        )
+                    )
+            )
+        }
+
+        // 4. 左侧排版：元数据徽标 + 评分 + 标题 + 看点剧情概述
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth(0.85f)
-                .padding(start = 28.dp, bottom = 22.dp, end = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .align(Alignment.TopStart)
+                .fillMaxWidth(0.62f)
+                .padding(start = 36.dp, end = 20.dp, top = 32.dp, bottom = 44.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // 顶部元数据行：标签 + 评分 + 年份与题材
             Row(
@@ -443,20 +496,20 @@ private fun BannerItemView(
             Text(
                 text = video.title,
                 color = Color.White,
-                fontSize = 28.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 34.sp
+                lineHeight = 36.sp
             )
 
-            // 精炼看点剧情概述
+            // 精炼看点剧情概述（2 行）
             if (meta.overview.isNotEmpty()) {
                 Text(
                     text = meta.overview,
                     color = Color(0xD9FFFFFF),
-                    fontSize = 12.5.sp,
-                    lineHeight = 18.sp,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
