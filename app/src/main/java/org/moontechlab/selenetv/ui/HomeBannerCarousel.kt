@@ -222,24 +222,24 @@ fun HomeBannerCarousel(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 12.dp)
-            .height(320.dp)
+            .padding(horizontal = 32.dp, vertical = 8.dp)
+            .height(215.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
             .shadow(
-                elevation = if (isFocused) 20.dp else 6.dp,
-                shape = RoundedCornerShape(16.dp),
-                spotColor = if (isFocused) Color(0x66FFFFFF) else Color.Black
+                elevation = if (isFocused) 16.dp else 4.dp,
+                shape = RoundedCornerShape(14.dp),
+                spotColor = if (isFocused) Color(0x55FFFFFF) else Color.Black
             )
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(14.dp))
             .border(
                 border = BorderStroke(
-                    width = if (isFocused) 2.5.dp else 1.dp,
-                    color = if (isFocused) Color.White else Color(0x22FFFFFF)
+                    width = if (isFocused) 2.dp else 0.8.dp,
+                    color = if (isFocused) Color(0xEEFFFFFF) else Color(0x1AFFFFFF)
                 ),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             )
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused || focusState.hasFocus
@@ -299,48 +299,27 @@ fun HomeBannerCarousel(
             val video = bannerList[pageIndex]
             BannerItemView(
                 video = video,
-                isFocused = isFocused
+                isFocused = isFocused,
+                currentPage = pagerState.currentPage,
+                pageCount = bannerList.size
             )
-        }
-
-        // 底部左侧纤细胶囊页码指示条（与左侧大片看点文字精准左对齐）
-        if (bannerList.size > 1) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 36.dp, bottom = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                repeat(bannerList.size) { index ->
-                    val isCurrent = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .height(4.dp)
-                            .width(if (isCurrent) 22.dp else 6.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(
-                                if (isCurrent) Color.White else Color(0x55FFFFFF)
-                            )
-                    )
-                }
-            }
         }
     }
 }
 
 /**
- * 单张巨幅 Banner 展示视图（方案 1：自然羽化沉浸式）：
- * - 底层铺设微光暗化氛围底图，营造沉浸大片感；
- * - 右侧展示 100% 完整 2:3 院线海报（全貌展示，绝不裁头、绝不裁身、字画完整）；
- * - 海报左边缘平滑羽化消融（Fade-out）自然融入纯黑背景，无任何生硬分割线；
- * - 左侧舒展排布大片徽标、金星评分、年代题材、30sp超大标题与2行看点概述；
- * - 通体全卡可点，遥控器与触控无缝支持。
+ * 现代流光悬浮微卡（Modern Ambient Floating Card）：
+ * 1. 黄金比例尺寸（215dp 紧凑大片画幅，告别傻大笨粗，释放屏幕纵向视野）；
+ * 2. 右侧【电影明信片·立体悬浮微卡】：100% 完整原画 2:3 胶片卡，带细腻圆角、微光边框与景深投影，艺术感极强；
+ * 3. 告别死黑【流体环境光溢出】：海报原色大底微透弥散扩散，配合平滑横向暗调渐变，整张卡片通透灵动；
+ * 4. 左侧【紧凑黄金信息栈】：红标胶囊 + 金星评分 + 22sp粗体片名 + 2行看点精要 + 精巧指示胶囊条，浑然一体。
  */
 @Composable
 private fun BannerItemView(
     video: VideoInfo,
-    isFocused: Boolean
+    isFocused: Boolean,
+    currentPage: Int,
+    pageCount: Int
 ) {
     val meta = MOVIE_META_MAP[video.title]
         ?: BannerMovieMeta(tag = "🔥 热门推荐", genre = "精选佳作", overview = "")
@@ -348,111 +327,93 @@ private fun BannerItemView(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F0F0F))
+            .background(Color(0xFF121214))
     ) {
-        // 1. 底层沉浸环境图（充满全屏，低透明度暗化，营造背景环境光）
+        // 1. 底层流体环境图（海报局部放大弥散，色彩自然溢出，告别枯燥死黑）
         CoverImage(
             rawUrl = video.cover,
             contentDescription = null,
             alignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer { alpha = 0.20f }
+                .graphicsLayer {
+                    alpha = 0.32f
+                    scaleX = 1.25f
+                    scaleY = 1.25f
+                }
         )
 
-        // 2. 底层黑向横向遮罩（左侧纯黑纯净，向右侧渐变微透）
+        // 2. 现代流光暗调双层横向蒙版（保护左侧文字可读性，右侧透出环境光晕）
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
                         colorStops = arrayOf(
-                            0.0f to Color(0xFF0F0F0F),
-                            0.45f to Color(0xF50F0F0F),
-                            0.70f to Color(0xBB0F0F0F),
-                            1.0f to Color(0x440F0F0F)
+                            0.0f to Color(0xFA121214),
+                            0.42f to Color(0xEE121214),
+                            0.70f to Color(0x99121214),
+                            1.0f to Color(0x40121214)
                         )
                     )
                 )
         )
 
-        // 3. 右侧 100% 完整 2:3 院线海报 + 左边缘自然羽化遮罩
+        // 3. 右侧【电影明信片·立体悬浮微卡】（100% 完整原画海报，永不裁切，典藏质感）
         Box(
             modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 22.dp, top = 12.dp, bottom = 12.dp)
                 .fillMaxHeight()
                 .aspectRatio(2f / 3f)
-                .align(Alignment.CenterEnd)
+                .shadow(
+                    elevation = 12.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    spotColor = Color(0x99000000)
+                )
+                .clip(RoundedCornerShape(8.dp))
+                .border(
+                    width = 1.dp,
+                    color = Color(0x40FFFFFF),
+                    shape = RoundedCornerShape(8.dp)
+                )
         ) {
-            // 完整海报原画
             CoverImage(
                 rawUrl = video.cover,
                 contentDescription = video.title,
                 alignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
             )
-
-            // 左边缘羽化渐变（从深黑柔和过渡到全透明）
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0.0f to Color(0xFF0F0F0F),
-                                0.22f to Color(0xDD0F0F0F),
-                                0.48f to Color(0x770F0F0F),
-                                0.75f to Color.Transparent,
-                                1.0f to Color.Transparent
-                            )
-                        )
-                    )
-            )
-
-            // 微弱上下暗角，增加光影景深
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.0f to Color(0x33000000),
-                                0.12f to Color.Transparent,
-                                0.88f to Color.Transparent,
-                                1.0f to Color(0x44000000)
-                            )
-                        )
-                    )
-            )
         }
 
-        // 4. 左侧排版：元数据徽标 + 评分 + 标题 + 看点剧情概述
+        // 4. 左侧【紧凑黄金信息栈】（徽标 + 评分 + 标题 + 剧情精要 + 底部指示条）
         Column(
             modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth(0.62f)
-                .padding(start = 36.dp, end = 20.dp, top = 32.dp, bottom = 44.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(0.66f)
+                .padding(start = 28.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            // 顶部元数据行：标签 + 评分 + 年份与题材
+            // 元数据行：标签 + 评分 + 年份与题材
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 红色胶囊徽标
+                // 红色渐变小胶囊
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
                         .background(
                             Brush.horizontalGradient(
-                                listOf(Color(0xFFE50914), Color(0xFFFF5252))
+                                listOf(Color(0xFFE50914), Color(0xFFFF4141))
                             )
                         )
-                        .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = meta.tag,
                         color = Color.White,
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -468,12 +429,12 @@ private fun BannerItemView(
                             imageVector = Icons.Default.Star,
                             contentDescription = "Rating",
                             tint = Color(0xFFFFB800),
-                            modifier = Modifier.size(15.dp)
+                            modifier = Modifier.size(13.5.dp)
                         )
                         Text(
                             text = rate,
                             color = Color(0xFFFFB800),
-                            fontSize = 13.5.sp,
+                            fontSize = 12.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -483,8 +444,8 @@ private fun BannerItemView(
                 if (video.year.isNotEmpty()) {
                     Text(
                         text = "${video.year} · ${meta.genre}",
-                        color = Color(0xCCFFFFFF),
-                        fontSize = 12.sp,
+                        color = Color(0xAAFFFFFF),
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -492,27 +453,50 @@ private fun BannerItemView(
                 }
             }
 
-            // 大片主标题
+            // 大片主标题（22sp 粗黑体，紧凑有力）
             Text(
                 text = video.title,
                 color = Color.White,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                lineHeight = 36.sp
+                lineHeight = 28.sp
             )
 
-            // 精炼看点剧情概述（2 行）
+            // 精练看点剧情概述（2 行收敛排版）
             if (meta.overview.isNotEmpty()) {
                 Text(
                     text = meta.overview,
-                    color = Color(0xD9FFFFFF),
-                    fontSize = 13.sp,
-                    lineHeight = 19.sp,
+                    color = Color(0xBBFFFFFF),
+                    fontSize = 11.5.sp,
+                    lineHeight = 16.5.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            // 5. 底部纤细指示条（紧贴文字左对齐，与内容融为一体）
+            if (pageCount > 1) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(pageCount) { index ->
+                        val isCurrent = index == currentPage
+                        Box(
+                            modifier = Modifier
+                                .height(3.dp)
+                                .width(if (isCurrent) 18.dp else 5.dp)
+                                .clip(RoundedCornerShape(1.5.dp))
+                                .background(
+                                    if (isCurrent) Color.White else Color(0x44FFFFFF)
+                                )
+                        )
+                    }
+                }
             }
         }
     }
