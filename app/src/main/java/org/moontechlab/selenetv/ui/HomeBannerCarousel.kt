@@ -36,6 +36,8 @@ import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.moontechlab.selenetv.model.VideoInfo
+import org.moontechlab.selenetv.model.DoubanMovieDetails
+import org.moontechlab.selenetv.service.ApiResponse
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
@@ -44,150 +46,9 @@ import org.moontechlab.selenetv.service.DoubanService
 import org.moontechlab.selenetv.util.getImageUrlSync
 
 /**
- * 2024-2026 最新大片兜底精选池（全量 1080P 超清官方海报）
- */
-private val DEFAULT_BANNER_MOVIES = listOf(
-    VideoInfo(
-        id = "36828393",
-        title = "野兽之心",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2026",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2933185536.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "野兽之心",
-        doubanId = "36828393",
-        rate = "7.3"
-    ),
-    VideoInfo(
-        id = "36882191",
-        title = "八仙！",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2026",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2934074566.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "八仙！",
-        doubanId = "36882191",
-        rate = "8.2"
-    ),
-    VideoInfo(
-        id = "35575567",
-        title = "沙丘2",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2024",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2897429728.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "沙丘2",
-        doubanId = "35575567",
-        rate = "8.1"
-    ),
-    VideoInfo(
-        id = "36151692",
-        title = "周处除三害",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2023",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2905021483.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "周处除三害",
-        doubanId = "36151692",
-        rate = "8.1"
-    ),
-    VideoInfo(
-        id = "35267208",
-        title = "流浪地球2",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2023",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2886492513.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "流浪地球2",
-        doubanId = "35267208",
-        rate = "8.3"
-    ),
-    VideoInfo(
-        id = "37317907",
-        title = "另一个妈妈",
-        source = "douban",
-        sourceName = "豆瓣",
-        year = "2026",
-        cover = "https://img3.doubanio.com/view/photo/l_ratio_poster/public/p2935858295.jpg",
-        index = 0,
-        totalEpisodes = 1,
-        playTime = 0,
-        totalTime = 0,
-        saveTime = 0,
-        searchTitle = "另一个妈妈",
-        doubanId = "37317907",
-        rate = "6.5"
-    )
-)
-
-private data class BannerMovieMeta(
-    val tag: String,
-    val genre: String,
-    val overview: String
-)
-
-private val MOVIE_META_MAP = mapOf(
-    "野兽之心" to BannerMovieMeta(
-        tag = "2026 豆瓣爆款",
-        genre = "剧情 / 爱情",
-        overview = "面对现实的残酷与欲望的诱惑，一对相依为命的边缘恋人展开了扣人心弦的救赎博弈。"
-    ),
-    "八仙！" to BannerMovieMeta(
-        tag = "2026 爆笑喜剧",
-        genre = "喜剧 / 动画 / 奇幻 / 冒险",
-        overview = "八仙在成仙与搞事业之间玩转人间。面对泼天富贵与神妖阻挠，八个身份各异的凡人展开爆笑逆袭。"
-    ),
-    "沙丘2" to BannerMovieMeta(
-        tag = "IMAX 史诗巨制",
-        genre = "科幻 / 冒险 / 动作",
-        overview = "保罗·厄崔迪携手契妮与弗雷曼人，踏上复仇与拯救厄拉科斯的壮丽史诗之旅，宇宙宿命在此决裂。"
-    ),
-    "周处除三害" to BannerMovieMeta(
-        tag = "高分动作爽片",
-        genre = "动作 / 犯罪 / 剧情",
-        overview = "通缉犯陈桂林得知自己身患绝症后，决心查出前两名通缉犯并除掉他们借此扬名，展开亡命追凶。"
-    ),
-    "流浪地球2" to BannerMovieMeta(
-        tag = "硬核科幻里程碑",
-        genre = "科幻 / 动作 / 灾难",
-        overview = "太阳急速老化面临毁灭，人类启动万座行星发动机奔向新家园。在数字生命危机与太空电梯浩劫面前，全人类挺身决战。"
-    ),
-    "另一个妈妈" to BannerMovieMeta(
-        tag = "高能惊悚力作",
-        genre = "悬疑 / 惊悚 / 剧情",
-        overview = "母亲意外发现收养的女儿暗藏不可告人的秘密，平静生活瞬间演变为一场惊心动魄的心理拉锯战。"
-    )
-)
-
-/**
  * TV 端首页首屏巨幅轮播 Banner 组件
  *
- * @param videos 轮播影视列表（默认取豆瓣热门前几项）
+ * @param videos 轮播影视列表（最新且经可播放性校验的影片）
  * @param isLoading 加载状态
  * @param onVideoClick 点击触发播放/详情回调
  * @param modifier 修饰符
@@ -201,8 +62,55 @@ fun HomeBannerCarousel(
     modifier: Modifier = Modifier
 ) {
     val bannerList = remember(videos) {
-        if (videos.isNotEmpty()) videos.take(6) else DEFAULT_BANNER_MOVIES
+        if (videos.isNotEmpty()) videos.take(6) else emptyList()
     }
+
+    if (bannerList.isEmpty()) {
+        // 未加载完成或无数据时：展示优雅骨架展台，绝不展示硬编码假数据
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 28.dp, vertical = 6.dp)
+                .height(330.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF121318))
+                .border(
+                    border = BorderStroke(0.8.dp, Color(0x1AFFFFFF)),
+                    shape = RoundedCornerShape(14.dp)
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 32.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(76.dp)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0x22FFFFFF))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(240.dp)
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0x33FFFFFF))
+                )
+                Box(
+                    modifier = Modifier
+                        .width(380.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0x1FFFFFFF))
+                )
+            }
+        }
+        return
+    }
+
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { bannerList.size })
     val coroutineScope = rememberCoroutineScope()
     var isFocused by remember { mutableStateOf(false) }
@@ -229,7 +137,7 @@ fun HomeBannerCarousel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 28.dp, vertical = 6.dp)
-            .height(250.dp)
+            .height(330.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -316,8 +224,8 @@ fun HomeBannerCarousel(
 /**
  * 官方原生横版超清剧照 (Backdrop) + 悬浮胶片卡融合大片展台：
  * 1. 优先从豆瓣官方 Photos 异步拉取 16:9 / 2.35:1 超清横向电影剧照，大片构图完好无损展现；
- * 2. 右侧悬浮 100% 完整原画海报微卡，双重保证核心重点与原画艺术字完全清晰；
- * 3. 250dp 精致黄金大画幅，大面积震撼的同时给下方多列影视留出充裕空间，告别空洞。
+ * 2. 动态拉取豆瓣详情 summary 填充剧情简介与题材，杜绝硬编码；
+ * 3. 330dp 沉浸大画幅，大面积震撼的同时留出充裕的看点剧情排版空间。
  */
 @Composable
 private fun BannerItemView(
@@ -327,15 +235,46 @@ private fun BannerItemView(
     pageCount: Int
 ) {
     val context = LocalContext.current
-    val meta = MOVIE_META_MAP[video.title]
-        ?: BannerMovieMeta(tag = "🔥 热门推荐", genre = "精选佳作", overview = "")
-
+    var movieDetails by remember(video.id, video.doubanId) { mutableStateOf<DoubanMovieDetails?>(null) }
     var backdropUrl by remember(video.id) { mutableStateOf<String?>(null) }
+
+    // 动态拉取超清横版剧照 + 官方剧情简介与详情
     LaunchedEffect(video.id, video.doubanId) {
         val dId = video.doubanId
         if (!dId.isNullOrBlank()) {
-            backdropUrl = DoubanService.getInstance(context).getDoubanBackdrop(dId)
+            launch {
+                backdropUrl = DoubanService.getInstance(context).getDoubanBackdrop(dId)
+            }
+            launch {
+                when (val resp = DoubanService.getInstance(context).getDoubanDetails(dId)) {
+                    is ApiResponse.Success -> {
+                        movieDetails = resp.data
+                    }
+                    else -> {}
+                }
+            }
         }
+    }
+
+    // 动态解析元数据与简介（彻底杜绝硬编码）
+    val summaryText = movieDetails?.summary?.takeIf { it.isNotBlank() }
+        ?: (video.searchTitle.takeIf { it.isNotBlank() && it != video.title } ?: "")
+
+    val genreText = run {
+        val genres = movieDetails?.genres?.filter { it.isNotBlank() }
+        if (!genres.isNullOrEmpty()) {
+            if (video.year.isNotEmpty()) "${video.year} · ${genres.joinToString(" / ")}" else genres.joinToString(" / ")
+        } else if (video.year.isNotEmpty()) {
+            "${video.year} · 电影"
+        } else {
+            "电影"
+        }
+    }
+
+    val tagText = when {
+        video.rate != null && (video.rate.toDoubleOrNull() ?: 0.0) >= 8.0 -> "🔥 豆瓣高分"
+        video.year.isNotBlank() -> "${video.year} 最新"
+        else -> "精选热映"
     }
 
     Box(
@@ -344,12 +283,12 @@ private fun BannerItemView(
             .background(Color(0xFF0F1014))
     ) {
         // 1. 底层大背景：优先使用官方原生 16:9 横版超清剧照；无剧照时平滑回退海报弥散环境光
-        // 彻底杜绝小卡片的“暂无封面”方块盖在巨幕展台中间；采用原生 crossfade 平滑渐显
         val displayImg = backdropUrl ?: video.cover
         if (displayImg.isNotBlank()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(getImageUrlSync(displayImg))
+                    .size(coil.size.Size.ORIGINAL)
                     .crossfade(true)
                     .build(),
                 contentDescription = video.title,
@@ -366,7 +305,7 @@ private fun BannerItemView(
         }
 
         // 2. 智能渐变遮罩：
-        // - 有横版剧照时：采用 Apple TV+ 自底向上深邃平滑渐变，上半部 100% 裸露通透，下半部平滑过渡彻底保护文字，杜绝糊在衣服上
+        // - 有横版剧照时：采用自底向上深邃平滑渐变，上半部通透裸露超清大片画面，下半部平滑过渡保护文字
         // - 无剧照回退时：使用左侧水平渐变保护文字并突显右侧悬浮海报
         if (backdropUrl != null) {
             Box(
@@ -376,9 +315,9 @@ private fun BannerItemView(
                         Brush.verticalGradient(
                             colorStops = arrayOf(
                                 0.0f to Color.Transparent,
-                                0.25f to Color.Transparent,
-                                0.55f to Color(0x66090A0D),
-                                0.80f to Color(0xCC090A0D),
+                                0.30f to Color.Transparent,
+                                0.58f to Color(0x66090A0D),
+                                0.78f to Color(0xCC090A0D),
                                 1.0f to Color(0xFA090A0D)
                             )
                         )
@@ -392,8 +331,8 @@ private fun BannerItemView(
                         Brush.horizontalGradient(
                             colorStops = arrayOf(
                                 0.0f to Color(0xFF0F1014),
-                                0.40f to Color(0xF20F1014),
-                                0.70f to Color(0x990F1014),
+                                0.45f to Color(0xF20F1014),
+                                0.75f to Color(0x990F1014),
                                 1.0f to Color(0x220F1014)
                             )
                         )
@@ -406,11 +345,11 @@ private fun BannerItemView(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
-                    .padding(end = 24.dp, top = 14.dp, bottom = 14.dp)
+                    .padding(end = 28.dp, top = 20.dp, bottom = 20.dp)
                     .fillMaxHeight()
                     .aspectRatio(2f / 3f)
                     .shadow(
-                        elevation = 12.dp,
+                        elevation = 14.dp,
                         shape = RoundedCornerShape(8.dp),
                         spotColor = Color(0x99000000)
                     )
@@ -430,28 +369,16 @@ private fun BannerItemView(
             }
         }
 
-        // 4. 【沉浸式信息排版】：
-        // - 横版剧照时：采用 Apple TV+ 电影级双层自然流（大片标题独立为第一主角，副信息优雅收敛在第二行）
-        // - 回退海报时：保持经典左侧黄金排版
+        // 4. 【沉浸式信息排版】：大片标题 + 元数据副信息 + 剧情简介多行展示
         if (backdropUrl != null) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(start = 28.dp, end = 28.dp, bottom = 18.dp),
+                    .padding(start = 32.dp, end = 32.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // 第一行：大片主标题（绝对第一视觉主角，大号粗体白字，气势磅礴）
-                Text(
-                    text = video.title,
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                // 第二行：两端对齐：左侧收敛副信息流（微标签 + 评分 + 细点 + 年份分类 + 剧情看点），右侧并排指示器
+                // 第一行：两端对齐（微标签 + 评分 + 年份与题材，右侧指示器）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -459,10 +386,7 @@ private fun BannerItemView(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .padding(end = 16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         // 红色微型胶囊
                         Box(
@@ -473,18 +397,18 @@ private fun BannerItemView(
                                         listOf(Color(0xFFE50914), Color(0xFFFF3B30))
                                     )
                                 )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = 7.dp, vertical = 2.5.dp)
                         ) {
                             Text(
-                                text = meta.tag,
+                                text = tagText,
                                 color = Color.White,
-                                fontSize = 10.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
 
                         // 金星评分
-                        val rate = video.rate
+                        val rate = video.rate ?: movieDetails?.rate
                         if (!rate.isNullOrEmpty()) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -494,12 +418,12 @@ private fun BannerItemView(
                                     imageVector = Icons.Default.Star,
                                     contentDescription = "Rating",
                                     tint = Color(0xFFFFB800),
-                                    modifier = Modifier.size(13.dp)
+                                    modifier = Modifier.size(13.5.dp)
                                 )
                                 Text(
                                     text = rate,
                                     color = Color(0xFFFFB800),
-                                    fontSize = 12.5.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -509,24 +433,12 @@ private fun BannerItemView(
                         Text(text = "•", color = Color(0x55FFFFFF), fontSize = 11.sp)
 
                         // 年份与题材
-                        if (video.year.isNotEmpty()) {
+                        if (genreText.isNotEmpty()) {
                             Text(
-                                text = "${video.year} · ${meta.genre}",
+                                text = genreText,
                                 color = Color(0xB3FFFFFF),
-                                fontSize = 12.sp,
+                                fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        // 精炼剧情看点（有空间则展示）
-                        if (meta.overview.isNotEmpty()) {
-                            Text(text = "•", color = Color(0x55FFFFFF), fontSize = 11.sp)
-                            Text(
-                                text = meta.overview,
-                                color = Color(0x99FFFFFF),
-                                fontSize = 11.5.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -543,8 +455,8 @@ private fun BannerItemView(
                                 val isCurrent = index == currentPage
                                 Box(
                                     modifier = Modifier
-                                        .height(3.dp)
-                                        .width(if (isCurrent) 18.dp else 5.dp)
+                                        .height(3.5.dp)
+                                        .width(if (isCurrent) 22.dp else 6.dp)
                                         .clip(RoundedCornerShape(2.dp))
                                         .background(
                                             if (isCurrent) Color.White else Color(0x44FFFFFF)
@@ -554,14 +466,40 @@ private fun BannerItemView(
                         }
                     }
                 }
+
+                // 第二行：大片主标题（26sp 粗体白字，气势磅礴）
+                Text(
+                    text = video.title,
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 32.sp
+                )
+
+                // 第三行：剧情看点简介（优雅 2 行排版，大屏电视清晰醒目）
+                if (summaryText.isNotBlank()) {
+                    Text(
+                        text = summaryText,
+                        color = Color(0xCCFFFFFF),
+                        fontSize = 13.sp,
+                        lineHeight = 19.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth(0.88f)
+                            .padding(top = 2.dp)
+                    )
+                }
             }
         } else {
-            // 回退海报经典左侧排版
+            // 回退海报经典左侧排版（高度加高至 330dp，空间充裕）
             Column(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
                     .fillMaxWidth(0.64f)
-                    .padding(start = 32.dp, end = 16.dp, top = 18.dp, bottom = 18.dp),
+                    .padding(start = 32.dp, end = 16.dp, top = 20.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // 元数据行：标签 + 评分 + 年份与题材
@@ -580,14 +518,14 @@ private fun BannerItemView(
                             .padding(horizontal = 7.dp, vertical = 2.5.dp)
                     ) {
                         Text(
-                            text = meta.tag,
+                            text = tagText,
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    val rate = video.rate
+                    val rate = video.rate ?: movieDetails?.rate
                     if (!rate.isNullOrEmpty()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -608,9 +546,9 @@ private fun BannerItemView(
                         }
                     }
 
-                    if (video.year.isNotEmpty()) {
+                    if (genreText.isNotEmpty()) {
                         Text(
-                            text = "${video.year} · ${meta.genre}",
+                            text = genreText,
                             color = Color(0xCCFFFFFF),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
@@ -623,19 +561,19 @@ private fun BannerItemView(
                 Text(
                     text = video.title,
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 30.sp
+                    lineHeight = 32.sp
                 )
 
-                if (meta.overview.isNotEmpty()) {
+                if (summaryText.isNotBlank()) {
                     Text(
-                        text = meta.overview,
+                        text = summaryText,
                         color = Color(0xCCFFFFFF),
-                        fontSize = 12.sp,
-                        lineHeight = 17.5.sp,
+                        fontSize = 12.5.sp,
+                        lineHeight = 18.sp,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -653,7 +591,7 @@ private fun BannerItemView(
                             Box(
                                 modifier = Modifier
                                     .height(3.5.dp)
-                                    .width(if (isCurrent) 20.dp else 5.5.dp)
+                                    .width(if (isCurrent) 22.dp else 6.dp)
                                     .clip(RoundedCornerShape(2.dp))
                                     .background(
                                         if (isCurrent) Color.White else Color(0x44FFFFFF)

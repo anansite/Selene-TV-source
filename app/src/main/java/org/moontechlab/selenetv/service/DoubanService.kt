@@ -581,8 +581,8 @@ class DoubanService private constructor(private val context: Context) {
         if (doubanId.isBlank()) return@withContext null
 
         initCache()
-        // 升级至 v2 key，杜绝旧版 NONE 脏缓存污染
-        val cacheKey = "douban_backdrop_v2_$doubanId"
+        // 升级至 v3 key，采用高分辨率选图算法，拉取超清剧照
+        val cacheKey = "douban_backdrop_v3_$doubanId"
         val cached = try {
             cacheService.get(cacheKey) { it }
         } catch (_: Exception) {
@@ -599,9 +599,9 @@ class DoubanService private constructor(private val context: Context) {
             else -> "https://m.douban.cmliussss.net" // 优先走免签 CDN 代理，防直连风控
         }
         val targetUrl = if (dataSourceKey == DoubanDataSourceKey.CORS_PROXY) {
-            "https://ciao-cors.is-an.org/${URLEncoder.encode("$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=8", "UTF-8")}"
+            "https://ciao-cors.is-an.org/${URLEncoder.encode("$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=25", "UTF-8")}"
         } else {
-            "$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=8"
+            "$baseUrl/rexxar/api/v2/movie/$doubanId/photos?count=25"
         }
 
         val headers = mutableMapOf(
@@ -620,6 +620,8 @@ class DoubanService private constructor(private val context: Context) {
                 val photos = root["photos"] as? JsonArray
                 var backdropUrl: String? = null
                 if (photos != null) {
+                    data class PhotoCandidate(val url: String, val width: Int, val height: Int)
+                    val candidates = mutableListOf<PhotoCandidate>()
                     for (p in photos) {
                         val pObj = p as? JsonObject ?: continue
                         val img = pObj["image"] as? JsonObject ?: continue
@@ -629,14 +631,16 @@ class DoubanService private constructor(private val context: Context) {
                         val u = lg["url"]?.jsonPrimitive?.contentOrNull
                         // 筛选宽大于高的横屏剧照 (width > height)
                         if (w > h && !u.isNullOrBlank()) {
-                            backdropUrl = u
-                            break
+                            candidates.add(PhotoCandidate(u, w, h))
                         }
                     }
+                    // 优先选取分辨率最高（面积与宽度最大）的超清大图
+                    val best = candidates.maxByOrNull { it.width * it.height }
+                    backdropUrl = best?.url
                 }
                 if (backdropUrl != null) {
                     cacheService.set(cacheKey, backdropUrl, 30L * 24 * 60 * 60 * 1000)
-                    android.util.Log.i("DoubanService", "动态解析剧照成功: doubanId=$doubanId -> $backdropUrl")
+                    android.util.Log.i("DoubanService", "动态解析超清剧照成功: doubanId=$doubanId -> $backdropUrl")
                     return@withContext backdropUrl
                 }
             }

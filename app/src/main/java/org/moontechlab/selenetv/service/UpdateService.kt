@@ -15,8 +15,15 @@ import java.io.File
  */
 object UpdateService {
     private const val TAG = "UpdateService"
+    private const val REPO_NAME = "anansite/Selene-TV-source"
     private const val LATEST_URL =
-        "https://api.github.com/repos/anansite/Selene-TV-source/releases/latest"
+        "https://api.github.com/repos/$REPO_NAME/releases/latest"
+
+    /** API 检查地址列表（国内加速代理优先，官方直连兜底） */
+    private val RELEASE_URLS = listOf(
+        "https://ghproxy.net/https://api.github.com/repos/$REPO_NAME/releases/latest",
+        LATEST_URL
+    )
 
     /** 国内镜像加速前缀列表（按优先级依次尝试，空串表示回退官方直连） */
     private val DOWNLOAD_MIRRORS = listOf(
@@ -52,23 +59,26 @@ object UpdateService {
     }
 
     private fun fetchLatestRelease(): GithubRelease {
-        val request = Request.Builder()
-            .url(LATEST_URL)
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "SeleneTV")
-            .build()
-        try {
-            MediaHttp.httpClient.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) throw ApiException("检查更新失败 (${resp.code})", resp.code)
-                val body = resp.body?.string() ?: throw ApiException("检查更新失败：空响应")
-                return json.decodeFromString<GithubRelease>(body)
+        var lastException: Exception? = null
+        for (apiUrl in RELEASE_URLS) {
+            val request = Request.Builder()
+                .url(apiUrl)
+                .header("Accept", "application/vnd.github+json")
+                .header("User-Agent", "SeleneTV")
+                .build()
+            try {
+                MediaHttp.httpClient.newCall(request).execute().use { resp ->
+                    if (!resp.isSuccessful) throw ApiException("检查更新失败 (${resp.code})", resp.code)
+                    val body = resp.body?.string() ?: throw ApiException("检查更新失败：空响应")
+                    return json.decodeFromString<GithubRelease>(body)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "fetchLatestRelease failed via [$apiUrl]: ${e.message}")
+                lastException = e
             }
-        } catch (e: ApiException) {
-            throw e
-        } catch (e: Exception) {
-            Log.w(TAG, "fetchLatestRelease failed: ${e.message}")
-            throw ApiException("检查更新失败：${e.message}")
         }
+        if (lastException is ApiException) throw lastException
+        throw ApiException("检查更新失败：${lastException?.message ?: "无法连接更新服务器"}")
     }
 
     /**

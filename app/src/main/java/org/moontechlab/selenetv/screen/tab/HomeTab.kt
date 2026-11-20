@@ -33,6 +33,7 @@ import org.moontechlab.selenetv.service.ApiService
 import org.moontechlab.selenetv.service.AppDataService
 import org.moontechlab.selenetv.service.BangumiService
 import org.moontechlab.selenetv.service.DoubanService
+import org.moontechlab.selenetv.service.DownstreamService
 import org.moontechlab.selenetv.ui.CardContextMenu
 import org.moontechlab.selenetv.ui.CardMenuItem
 import org.moontechlab.selenetv.ui.ConfirmDialog
@@ -60,6 +61,10 @@ fun HomeTab(
     var favorites by remember { mutableStateOf<List<VideoInfo>>(emptyList()) }
     var isLoadingFavorites by remember { mutableStateOf(true) }
     var errorFavorites by remember { mutableStateOf<String?>(null) }
+
+    // 首页轮播 Banner 专用数据状态（经可播放性校验的最新电影）
+    var bannerMovies by remember { mutableStateOf<List<VideoInfo>>(emptyList()) }
+    var isLoadingBanner by remember { mutableStateOf(true) }
 
     // 热门电影数据状态
     var hotMovies by remember { mutableStateOf<List<VideoInfo>>(emptyList()) }
@@ -236,6 +241,42 @@ fun HomeTab(
         }
     }
 
+    // 加载首页轮播大片（优先筛选出在当前聚合源中确认存在可播剧集的最新电影）
+    fun loadBannerMovies() {
+        coroutineScope.launch {
+            isLoadingBanner = true
+            try {
+                when (val response = doubanService.getHotMovies(pageLimit = 20, page = 0)) {
+                    is ApiResponse.Success -> {
+                        val candidates = response.data.map { it.toVideoInfo() }
+                        val resources = withContext(Dispatchers.IO) {
+                            try { Repositories.sources().getSearchResources().filter { !it.disabled } } catch (_: Exception) { emptyList() }
+                        }
+                        val verified = withContext(Dispatchers.IO) {
+                            if (resources.isEmpty()) {
+                                candidates.take(6)
+                            } else {
+                                // 并发轻量预检：挑选确认有播放资源的最新热门电影
+                                val playable = candidates.filter { video ->
+                                    DownstreamService.isPlayableInAnyResource(resources, video.title)
+                                }
+                                if (playable.isNotEmpty()) playable else candidates.take(6)
+                            }
+                        }
+                        bannerMovies = verified.take(6)
+                    }
+                    is ApiResponse.Error -> {
+                        android.util.Log.e("HomeTab", "加载轮播电影失败: ${response.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HomeTab", "加载轮播电影异常: ${e.message}")
+            } finally {
+                isLoadingBanner = false
+            }
+        }
+    }
+
     fun loadHotMovies() {
         coroutineScope.launch {
             isLoadingMovies = true
@@ -311,6 +352,7 @@ fun HomeTab(
     // 初始加载
     LaunchedEffect(Unit) {
         loadPlayRecordsAndFavorites()
+        loadBannerMovies()
         loadHotMovies()
         loadHotTvShows()
         loadBangumi()
@@ -365,10 +407,10 @@ fun HomeTab(
             // 顶部留出 TabSwitcher 的空间 + 额外间距
             Spacer(modifier = Modifier.height(64.dp))
 
-            // 首页首屏巨幅轮播 Banner
+            // 首页首屏巨幅轮播 Banner（优先展示经可播放性校验的最新电影）
             HomeBannerCarousel(
-                videos = hotMovies,
-                isLoading = isLoadingMovies,
+                videos = if (bannerMovies.isNotEmpty()) bannerMovies else hotMovies,
+                isLoading = isLoadingBanner && hotMovies.isEmpty(),
                 onVideoClick = onVideoSelected
             )
             

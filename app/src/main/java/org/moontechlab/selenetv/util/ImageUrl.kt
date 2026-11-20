@@ -41,6 +41,12 @@ fun getImageUrlSync(originalUrl: String): String {
             val hdUrl = originalUrl
                 .replace("/s_ratio_poster/", "/l_ratio_poster/")
                 .replace("/m_ratio_poster/", "/l_ratio_poster/")
+                .replace("/photo/s/", "/photo/l/")
+                .replace("/photo/m/", "/photo/l/")
+                .replace("/view/photo/s/", "/view/photo/l/")
+                .replace("/view/photo/m/", "/view/photo/l/")
+                .replace("/view/photo/med/", "/view/photo/l/")
+                .replace("/view/photo/thumb/", "/view/photo/l/")
             when (AppDataService.getDoubanImageSourceKeySync()) {
                 "server_proxy" -> serverProxyOrNull(hdUrl) ?: hdUrl
                 "official_cdn" -> hdUrl.replace(DOUBAN_IMAGE_REGEX, "img3.doubanio.com")

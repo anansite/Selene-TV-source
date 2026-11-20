@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -111,6 +112,34 @@ object DownstreamService {
             Log.e(TAG, "搜索失败: ${e.message}", e)
             emptyList()
         }
+    }
+
+    /**
+     * 快速探测指定标题是否在给定搜索资源中存在可用播放集（仅查第一页，带短超时）
+     */
+    suspend fun isPlayableInAnyResource(
+        resources: List<SearchResource>,
+        title: String,
+        timeoutMs: Long = 2500L
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (resources.isEmpty() || title.isBlank()) return@withContext false
+        val probeSources = resources.filter { !it.disabled }.take(3)
+        if (probeSources.isEmpty()) return@withContext false
+
+        for (res in probeSources) {
+            try {
+                val encodedQuery = URLEncoder.encode(title, "UTF-8")
+                val apiUrl = "${res.api}?ac=videolist&wd=$encodedQuery"
+                val result = withTimeoutOrNull(timeoutMs) {
+                    searchPage(res, title, 1, apiUrl)
+                }
+                if (result != null && result.results.any { it.episodes.isNotEmpty() }) {
+                    return@withContext true
+                }
+            } catch (_: Exception) {
+            }
+        }
+        false
     }
 
     /**
