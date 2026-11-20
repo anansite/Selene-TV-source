@@ -16,7 +16,14 @@ import java.io.File
 object UpdateService {
     private const val TAG = "UpdateService"
     private const val LATEST_URL =
-        "https://api.github.com/repos/MoonTechLab/Selene-TV/releases/latest"
+        "https://api.github.com/repos/anansite/Selene-TV-source/releases/latest"
+
+    /** 国内镜像加速前缀列表（按优先级依次尝试，空串表示回退官方直连） */
+    private val DOWNLOAD_MIRRORS = listOf(
+        "https://ghfast.top/",
+        "https://ghproxy.net/",
+        "",
+    )
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -73,34 +80,40 @@ object UpdateService {
         val dir = File(context.cacheDir, "update").apply { mkdirs() }
         dir.listFiles()?.forEach { it.delete() }
         val outFile = File(dir, "SeleneTV-${info.version}-${info.abi}.apk")
-        val request = Request.Builder().url(info.apkUrl).header("User-Agent", "SeleneTV").build()
-        try {
-            downloadClient.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) throw ApiException("下载失败 (${resp.code})", resp.code)
-                val body = resp.body ?: throw ApiException("下载失败：空响应")
-                val total = body.contentLength()
-                body.byteStream().use { input ->
-                    outFile.outputStream().use { output ->
-                        val buf = ByteArray(8 * 1024)
-                        var downloaded = 0L
-                        var read = input.read(buf)
-                        while (read != -1) {
-                            output.write(buf, 0, read)
-                            downloaded += read
-                            onProgress(if (total > 0) downloaded.toFloat() / total else -1f)
-                            read = input.read(buf)
+
+        var lastException: Exception? = null
+        for (prefix in DOWNLOAD_MIRRORS) {
+            val targetUrl = if (prefix.isEmpty()) info.apkUrl else "$prefix${info.apkUrl}"
+            val request = Request.Builder().url(targetUrl).header("User-Agent", "SeleneTV").build()
+            try {
+                downloadClient.newCall(request).execute().use { resp ->
+                    if (!resp.isSuccessful) throw ApiException("下载失败 (${resp.code})", resp.code)
+                    val body = resp.body ?: throw ApiException("下载失败：空响应")
+                    val total = body.contentLength()
+                    body.byteStream().use { input ->
+                        outFile.outputStream().use { output ->
+                            val buf = ByteArray(8 * 1024)
+                            var downloaded = 0L
+                            var read = input.read(buf)
+                            while (read != -1) {
+                                output.write(buf, 0, read)
+                                downloaded += read
+                                onProgress(if (total > 0) downloaded.toFloat() / total else -1f)
+                                read = input.read(buf)
+                            }
                         }
                     }
                 }
+                // 下载成功
+                return outFile
+            } catch (e: Exception) {
+                outFile.delete()
+                Log.w(TAG, "downloadApk failed via [$targetUrl]: ${e.message}")
+                lastException = e
             }
-        } catch (e: ApiException) {
-            outFile.delete()
-            throw e
-        } catch (e: Exception) {
-            outFile.delete()
-            Log.w(TAG, "downloadApk failed: ${e.message}")
-            throw ApiException("下载失败：${e.message}")
         }
-        return outFile
+
+        if (lastException is ApiException) throw lastException
+        throw ApiException("下载失败：${lastException?.message ?: "所有下载节点均失败"}")
     }
 }
