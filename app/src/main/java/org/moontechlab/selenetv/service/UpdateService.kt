@@ -19,8 +19,9 @@ object UpdateService {
     private const val LATEST_URL =
         "https://api.github.com/repos/$REPO_NAME/releases/latest"
 
-    /** API 检查地址列表（国内加速代理优先，官方直连兜底） */
+    /** API 检查地址列表（路由器局域网 CDN 优先，国内加速代理与官方直连兜底） */
     private val RELEASE_URLS = listOf(
+        "https://cdn.205002.xyz/selene-tv/latest.json",
         "https://ghproxy.net/https://api.github.com/repos/$REPO_NAME/releases/latest",
         LATEST_URL
     )
@@ -92,7 +93,9 @@ object UpdateService {
         val outFile = File(dir, "SeleneTV-${info.version}-${info.abi}.apk")
 
         var lastException: Exception? = null
-        for (prefix in DOWNLOAD_MIRRORS) {
+        val isCdnUrl = info.apkUrl.startsWith("https://cdn.205002.xyz")
+        val mirrors = if (isCdnUrl) listOf("") else DOWNLOAD_MIRRORS
+        for (prefix in mirrors) {
             val targetUrl = if (prefix.isEmpty()) info.apkUrl else "$prefix${info.apkUrl}"
             val request = Request.Builder().url(targetUrl).header("User-Agent", "SeleneTV").build()
             try {

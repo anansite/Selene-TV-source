@@ -87,3 +87,12 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify LAN Server
+        run: |
+          curl -s \
+            -H "Title: Selene TV ${{ github.ref_name }} Released" \
+            -H "Priority: high" \
+            -H "Tags: tv,package" \
+            -d "{\"app\": \"selene-tv\", \"version\": \"${{ github.ref_name }}\", \"repo\": \"${{ github.repository }}\"}" \
+            https://ntfy.sh/anan_apps_release_sync || true
